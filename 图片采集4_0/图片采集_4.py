@@ -174,6 +174,9 @@ def write(new_list, Image_link, return_word, author_url):
                 }
                 log("采集日志", data)  # 写入采集日志
                 print("图片请求超时...跳过")
+        print("图片下载完成")
+        data_info = {"url": Image_link}
+        StorageMysql("图片下载完成", data_info)
 
 
 # 对每个详细页的数据进行爬取
@@ -435,6 +438,15 @@ def StorageMysql(info, data_info):
         session.commit()
         session.close()
 
+    elif info == "图片下载完成":
+        session.query(ImageAuthor).filter(ImageAuthor.author_url == data_info['url']).update(
+            {
+                ImageAuthor.uuid: "2",
+            }
+        )
+        session.commit()
+        session.close()
+
 
 # 爬取作者信息
 class AuthorSpider:
@@ -551,12 +563,18 @@ def run_ArtistHomepage():
 
 # 启动采集艺术家所有项目的图片
 def Download_Artist_image():
-    time.sleep(10)
+    # time.sleep(10)
     session = DBSession()
-    query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "1").all()
-    for i in query:
-        print(f"当前下载的是：{i.author_name}")
-        second_request(json.loads(i.opus_url), i.author_url)
+    while True:
+        query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "1").all()
+        if not query:
+            print("当前没有需要下载的创作者")
+            # break
+        print(f"当前下载图片数量的创作者为：{len(query)} 个")
+        for i in query:
+            print(f"当前下载的是：{i.author_name}")
+            time.sleep(0.5)
+            second_request(json.loads(i.opus_url), i.author_url)
 
 
 if __name__ == '__main__':
@@ -568,8 +586,8 @@ if __name__ == '__main__':
     if config_IpPool_1['enable'] == "Yes":
         t4.start()
     t3.start()
-    t2.start()
-    t1.start()  # 开始线程
+    # t2.start()
+    # t1.start()  # 开始线程
     # t5 = threading.Thread(target=mysql_ip_pool)  # 取出代理IP
     #     # time.sleep(0.5)
     #     # t5.start()
