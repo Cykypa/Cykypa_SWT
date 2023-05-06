@@ -210,7 +210,6 @@ def second_request(link_lists, author_url):
                 # 链接  页面有两种图片
                 img_src_list = selector.xpath('//*[@id="project-modules"]//img/@src')
                 img_src_list = img_src_list + selector.xpath('//*[@id="project-modules"]//img/@data-src')
-                # print(img_src_list)  # 打印检查
                 to_remove = 'https://a5.behance.net'  # 排除a5的链接，a5不是
                 new_list = [x for x in img_src_list if to_remove not in x]  # 图片的去重
                 print("成功，准备写入图片")
@@ -446,7 +445,6 @@ def StorageMysql(info, data_info):
                 ImageAuthor.uuid: "2",
             }
         )
-
         session.commit()
         session.close()
 
@@ -571,6 +569,7 @@ def Download_Artist_image():
     while True:
         query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "1").all()
         if not query:
+            time.sleep(1)
             print("当前没有需要下载的创作者")
             # break
         print(f"当前下载图片数量的创作者为：{len(query)} 个")
@@ -589,8 +588,8 @@ if __name__ == '__main__':
     if config_IpPool_1['enable'] == "Yes":
         t4.start()
     t3.start()
-    # t2.start()
-    # t1.start()  # 开始线程
+    t2.start()
+    t1.start()  # 开始线程
     # t5 = threading.Thread(target=mysql_ip_pool)  # 取出代理IP
     #     # time.sleep(0.5)
     #     # t5.start()
