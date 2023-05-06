@@ -11,7 +11,7 @@ import redis
 import requests
 from lxml import etree
 
-from cookie_file import Next_cookie, config_IpPool, country_data_dict_list
+from config import Next_cookie, config_IpPool, country_data_dict_list
 from databaseinfo import ImageAuthor, DBSession
 
 Next_url = "https://www.behance.net/v3/graphql"
@@ -174,65 +174,66 @@ def write(new_list, Image_link, return_word, author_url):
                 }
                 log("采集日志", data)  # 写入采集日志
                 print("图片请求超时...跳过")
-        print("图片下载完成")
-        data_info = {"url": Image_link}
-        StorageMysql("图片下载完成", data_info)
+        # print("图片下载完成")
+        # data_info = {"url": author_url}
+        # StorageMysql("图片下载完成", data_info)
 
 
 # 对每个详细页的数据进行爬取
 def second_request(link_lists, author_url):
-    if len(link_lists) == 0:
-        print("link_lists列表为空，停止")
-    else:
-        for Image_link in link_lists:
-            print(f"共计：{len(link_lists)}，当前：{link_lists.index(Image_link) + 1} 个，当前链接：{Image_link}")
-            time.sleep(0.1)
-            try:
-                if config_IpPool_1['enable'] == "Yes":
-                    print("使用代理IP")
-                    response = requests.get(
-                        Image_link, proxies=mysql_ip_pool()
-                    )
-                else:
-                    print("不使用代理IP")
-                    response = requests.get(
-                        Image_link
-                    )
-                html = response.text
-                selector = etree.HTML(html)
-                # 调用提取文本的方法
-                return_word = Extraction_tools(selector)
-                if return_word == "获取文本失败":
-                    end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-                    data = {
-                        "链接": Image_link, "时间": end_time, "状态": "采集失败",
-                        "失败原因": return_word
-                    }
-                    log("采集日志", data)  # 写入采集日志
-                else:
-                    img_src_list = selector.xpath('//*[@id="project-modules"]//img/@src')  # 链接
-                    img_src_list = img_src_list + selector.xpath('//*[@id="project-modules"]//img/@data-src')
-                    # print(img_src_list)  # 打印检查
-                    to_remove = 'https://a5.behance.net'  # 排除a5的链接，a5不是
-                    new_list = [x for x in img_src_list if to_remove not in x]  # 图片的去重
-                    print("成功，准备写入图片")
-                    print(f"图片链接：{new_list}，项目链接：{Image_link}，文字：{return_word}")  # 打印检查
-                    write(new_list, Image_link, return_word, author_url)
-            except:
-                # 出现请求失败会将文件写入
-                fails.append(Image_link)
-                log('链接请求失败', fails)
+    for Image_link in link_lists:
+        print(f"共计：{len(link_lists)}，当前：{link_lists.index(Image_link) + 1} 个，当前链接：{Image_link}")
+        time.sleep(0.1)
+        try:
+            if config_IpPool_1['enable'] == "Yes":
+                print("使用代理IP")
+                response = requests.get(
+                    Image_link, proxies=mysql_ip_pool()
+                )
+            else:
+                print("不使用代理IP")
+                response = requests.get(
+                    Image_link
+                )
+            html = response.text
+            selector = etree.HTML(html)
+            # 调用提取文本的方法
+            return_word = Extraction_tools(selector)
+            if return_word == "获取文本失败":
                 end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
                 data = {
                     "链接": Image_link, "时间": end_time, "状态": "采集失败",
-                    "失败原因": traceback.format_exc()
+                    "失败原因": return_word
                 }
                 log("采集日志", data)  # 写入采集日志
-                print(traceback.format_exc())
-                print(f"当前链接：{Image_link}，请求出现问题，跳过")
-                time.sleep(1)
-                pass
-            time.sleep(0.5)
+            else:
+                # 链接  页面有两种图片
+                img_src_list = selector.xpath('//*[@id="project-modules"]//img/@src')
+                img_src_list = img_src_list + selector.xpath('//*[@id="project-modules"]//img/@data-src')
+                # print(img_src_list)  # 打印检查
+                to_remove = 'https://a5.behance.net'  # 排除a5的链接，a5不是
+                new_list = [x for x in img_src_list if to_remove not in x]  # 图片的去重
+                print("成功，准备写入图片")
+                # print(f"图片链接：{new_list}，项目链接：{Image_link}，文字：{return_word}")  # 打印检查
+                write(new_list, Image_link, return_word, author_url)
+        except:
+            # 出现请求失败会将文件写入
+            fails.append(Image_link)
+            log('链接请求失败', fails)
+            end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+            data = {
+                "链接": Image_link, "时间": end_time, "状态": "采集失败",
+                "失败原因": traceback.format_exc()
+            }
+            log("采集日志", data)  # 写入采集日志
+            print(traceback.format_exc())
+            print(f"当前链接：{Image_link}，请求出现问题，跳过")
+            time.sleep(1)
+            pass
+        time.sleep(0.5)
+        print("图片下载完成")
+        data_info = {"url": author_url}
+        StorageMysql("图片下载完成", data_info)
 
 
 # 获取并存入代理ip
@@ -285,6 +286,7 @@ class IpPool:
 
 # 提取出需要的文字
 def Extraction_tools(selector):
+    print("开始提取项目文本...")
     try:
         # 所有者
         owner = selector.xpath(
@@ -444,6 +446,7 @@ def StorageMysql(info, data_info):
                 ImageAuthor.uuid: "2",
             }
         )
+
         session.commit()
         session.close()
 
