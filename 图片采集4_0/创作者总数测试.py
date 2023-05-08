@@ -34,7 +34,7 @@ cookies = {
 }
 url = "https://www.behance.net/hire"
 
-data_len = country_data_dict_list()
+DataList = country_data_dict_list()
 
 data = []
 data_file = []
@@ -43,9 +43,9 @@ with open('./创作者总共数量.json', 'r') as f:
     fails = json.load(f)
 
 
-def get_total_():
-    for country in data_len[13:]:
-        print(f"当前是：{data_len.index(country) + 1} 个，共计：{len(data_len)}")
+def obtainTheNumberOfPeople():
+    for country in DataList[13:]:
+        print(f"当前是：{DataList.index(country) + 1} 个，共计：{len(DataList)}")
         print(country)
         params = {
             "country": f"{country['value']}"
@@ -70,20 +70,19 @@ def get_total_():
                 data_file.append(country)
 
 
-def quantity():
+def calculateTheNumberOfPeople():
     total = 0
     for i in fails:
-        total = total + int(i[data_len[fails.index(i)]['label']])
+        total = total + int(i[DataList[fails.index(i)]['label']])
     print(total)
 
 
 if __name__ == '__main__':
-    # print(fails)
-    # print(len(fails))
-    # get_total_()
-    # print(data)
-    # print(
-    #     len(data)
-    # )
-    # print(data_file)
-    quantity()
+    """
+        获取网站上国家的人数，写入json文件
+    """
+    # obtainTheNumberOfPeople()
+    """
+        打印所有的国家的创作者的人数
+    """
+    calculateTheNumberOfPeople()

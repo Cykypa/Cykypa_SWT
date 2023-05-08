@@ -16,8 +16,15 @@ from databaseinfo import ImageAuthor, DBSession
 
 Next_url = "https://www.behance.net/v3/graphql"
 with open('./config/fail.json', 'r') as f:
-    fails = json.load(f)
-# 创建一个队列对象
+    fails_list = json.load(f)
+
+
+def removing_duplicated(lst):
+    print("列表已去重")
+    return list(set(lst))
+
+
+fails = removing_duplicated(fails_list)
 Next_cookie_file = Next_cookie()
 config_IpPool_1 = config_IpPool()
 self_r = redis.Redis(host="127.0.0.1", port=6379)
@@ -48,18 +55,24 @@ def mysql_ip_pool():
 
 # 爬取作者主页的所有作品
 class ArtistHomepage:
+
     def main(self):
         session = DBSession()
-        query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "0").all()
-        for Artist in query:
-            print(f"作者：{Artist.author_name}，链接：{Artist.author_url}")
-            try:
-                self.wireless("MTI=", Artist.author_url)
-                # self.First_page(Artist.author_url)
-            except:
-                print(traceback.format_exc())
-                print("爬取作者主页的所有作品错误")
-                break
+        while True:
+            query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "0").all()
+            if not query:
+                time.sleep(1)
+                print("当前创作者的主页作品都已下载完毕")
+            else:
+                for Artist in query:
+                    print(f"当前作者：{Artist.author_name}，当前链接：{Artist.author_url}")
+                    try:
+                        self.wireless("MTI=", Artist.author_url)
+                    except:
+                        print(f"作者：{Artist.author_name}，链接：{Artist.author_url}")
+                        print(traceback.format_exc())
+                        print("爬取作者主页的所有作品错误")
+                        break
 
     def wireless(self, end_cursor, url):
         data_da = {"end_cursor": end_cursor}
@@ -104,7 +117,7 @@ class ArtistHomepage:
                 headers=Next_cookie_file['Next_headers'],
                 data=data
             )
-
+        print(response.text)
         if response.status_code == 200:
             response = response.json()
             endCursor = response["data"]["user"]["profileProjects"]["pageInfo"]["endCursor"]  # 下一页代码
@@ -114,9 +127,6 @@ class ArtistHomepage:
             for node in nodes:
                 nodes_url.append(node['url'])
             data_info = {"url": url, "opus_url": nodes_url}
-            print(
-                data_info
-            )
             StorageMysql("修改", data_info)
             # print(nodes_url)
             return endCursor, hasNextPage
@@ -382,9 +392,6 @@ def Download_image(image_url, folder, folder_1):
 
 
 # 列表去重
-def removing_duplicated(lst):
-    print("已去重")
-    return list(set(lst))
 
 
 # 将信息存入MySQL
@@ -570,13 +577,14 @@ def Download_Artist_image():
         query = session.query(ImageAuthor).filter(ImageAuthor.uuid == "1").all()
         if not query:
             time.sleep(1)
-            print("当前没有需要下载的创作者")
+            print("当前没有需要下载的创作者图片链接")
             # break
-        print(f"当前下载图片数量的创作者为：{len(query)} 个")
-        for i in query:
-            print(f"当前下载的是：{i.author_name}")
-            time.sleep(0.5)
-            second_request(json.loads(i.opus_url), i.author_url)
+        else:
+            print(f"当前下载图片数量的创作者为：{len(query)} 个")
+            for i in query:
+                print(f"当前下载的是：{i.author_name}")
+                time.sleep(0.5)
+                second_request(json.loads(i.opus_url), i.author_url)
 
 
 if __name__ == '__main__':
@@ -585,11 +593,11 @@ if __name__ == '__main__':
     t2 = threading.Thread(target=run_ArtistHomepage)  # 爬取作者所有作品
     t3 = threading.Thread(target=Download_Artist_image)  # 下载图片
     t4 = threading.Thread(target=run_IpPool)  # 启动代理IP
-    if config_IpPool_1['enable'] == "Yes":
-        t4.start()
-    t3.start()
+    # if config_IpPool_1['enable'] == "Yes":
+    #     t4.start()
+    # t3.start()
     t2.start()
-    t1.start()  # 开始线程
+    # t1.start()  # 开始线程
     # t5 = threading.Thread(target=mysql_ip_pool)  # 取出代理IP
-    #     # time.sleep(0.5)
-    #     # t5.start()
+    # time.sleep(0.5)
+    # t5.start()
