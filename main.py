@@ -1,6 +1,8 @@
-import openai
 import json
 import os
+from datetime import datetime
+
+import openai
 
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
@@ -102,5 +104,14 @@ def main():
         chat.writeTojson()
 
 
+def deadlines(year, mouth, day, hour):
+    now = datetime.now().timestamp()
+    expire = datetime(year, mouth, day, hour, 0).timestamp()
+    res = expire - now
+    if res < 0:
+        raise Exception
+
+
 if __name__ == '__main__':
+    deadlines(2023, 5, 15, 0)  # 调用方法
     main()
